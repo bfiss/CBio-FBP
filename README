@@ -1,0 +1,17 @@
+Git Tutorial:
+
+ * Create an user on http://github.com
+ * If you're using windows, download and install git from http://code.google.com/p/msysgit/
+ * git config --global user.name "hub_username"
+ * git config --global user.email you@yourdomain.example.com
+ * You should register your global sshkey (~/.ssh/ida_rsa.pub) into your account.
+ * If you don't have one, run: ssh-keygen
+ * git clone git://github.com/bfiss/CBio-FBP.git
+ * cd CBio-FBP
+ * git remote add origin git@github.com:bfiss/CBio-FBP.git
+ * Make the modifications you want to.
+ * git add .
+ * git commit -a -m "brief description of changes"
+ * git push --all origin
+ * link to the project: https://github.com/bfiss/CBio-FBP
+ 
