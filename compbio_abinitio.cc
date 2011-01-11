@@ -172,7 +172,7 @@ void
 compbio_abinitio::run ()
 {
 
-    int step = 0;
+    unsigned int step = 0;
     core::pose::Pose oldPose;
     do {
         setup ();                      // perform initialization
@@ -909,17 +909,17 @@ compbio_abinitio::generate_extended_pose (core::pose::Pose &pose,
 }
 
 void
-ex_generate_extended_pose (core::pose::Pose &pose,
-              core::pose::Pose oldPose, std::string const& seq) const
+compbio_abinitio::ex_generate_extended_pose (core::pose::Pose &pose,
+              core::pose::Pose &oldPose, std::string const& seq) const
 {
     chemical::make_pose_from_sequence (pose, seq,
           *(chemical::ChemicalManager::get_instance()->residue_type_set
                                                   (chemical::CENTROID)));
     for (Size pos = 1; pos <= oldPose.total_residue(); pos++) {
         if (!pose.residue (pos).is_protein ()) continue;
-        pose.set_phi (pos, oldPose.get_phi());
-        pose.set_psi (pos, oldPose.get_psi());
-        pose.set_omega (pos, oldPose.get_omega());
+        pose.set_phi (pos, oldPose.phi(pos));
+        pose.set_psi (pos, oldPose.psi(pos));
+        pose.set_omega (pos, oldPose.omega(pos));
     }
     for (Size pos = oldPose.total_residue()+1; pos <= pose.total_residue(); pos++) {
         if (!pose.residue (pos).is_protein ()) continue;
