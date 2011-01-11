@@ -46,6 +46,8 @@ public:
     void output_models ();
     void generate_extended_pose (core::pose::Pose &pose,
                                std::string const& seq) const;
+    void ex_generate_extended_pose (core::pose::Pose &pose,
+            core::pose::Pose &oldPose, std::string const& seq) const;
     bool prepare_loop_in_stage3 (core::pose::Pose &pose, Size iteration);
     void recover_low (core::pose::Pose& pose, StageID stage );
     bool contains_stageid (utility::vector1<StageID > vec, StageID query);

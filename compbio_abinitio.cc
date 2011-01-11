@@ -137,17 +137,17 @@ compbio_abinitio::compbio_abinitio (int decoy_num) : init_for_input_yet_(false)
     skip_stage2 = false;
     skip_stage3 = false;
     skip_stage4 = false;
-    skip_stage5 = true;
+    skip_stage5 = false;
 
     // relevant to stages 2 & 3
     apply_large_frags_   = true;
     short_insert_region_ = false;
    
     // number of cycles
-    num_cycles_stage1 = num_cycles_stage2 = 200;
-    num_cycles_stage3 = 100;
-    num_cycles_stage4 = 50;
-    num_cycles_stage5 = 50;
+    num_cycles_stage1 = num_cycles_stage2 = 2000;
+    num_cycles_stage3 = 2000;
+    num_cycles_stage4 = 4000;
+    num_cycles_stage5 = 50000;
 
     // adding evaluator
     evaluator_  = new protocols::evaluation::MetaPoseEvaluator ();
@@ -161,6 +161,9 @@ compbio_abinitio::~compbio_abinitio ()
     
 }
 
+#define INITIAL_SIZE 3 // size of the protein in the first step
+#define PAR_INI 3 // number of steps that are considered part of the beginning
+
 /*---------------------------------run-----------------------------------
  * It first performs initialization, and then folding. At the end, it
  * outputs final 3-D model for protein sequence 
@@ -169,18 +172,75 @@ void
 compbio_abinitio::run ()
 {
 
-    setup ();                      // perform initialization
-    init_on_new_input ();          // gets wothier in distributed computing
+    int step = 0;
+    core::pose::Pose oldPose;
+    do {
+        setup ();                      // perform initialization
+        init_on_new_input ();          // gets wothier in distributed computing
+        
+        // set parameters and remake the current pose (works for proteins longer or equal to INITIAL_SIZE, lots of uncollected garbage)
+        if (step) {
+            // add a new amino acid
+            ex_generate_extended_pose (*input_pose, oldPose, sequence_.substr (0, INITIAL_SIZE+step));
+            if (sequence_.size() - INITIAL_SIZE == step) { // last step
+                temperature_ = 1.4; 
+                // switching stages on/off
+                skip_stage1 = true;
+                skip_stage2 = false;
+                skip_stage3 = false;
+                skip_stage4 = false;
+                skip_stage5 = false;
 
-    // print the chosen parameters:
-    tr.Info << "num_cycles_stage1 = " <<  num_cycles_stage1 <<std::endl;
-    tr.Info << "num_cycles_stage2 = " <<  num_cycles_stage2 <<std::endl;
-    tr.Info << "num_cycles_stage3 = " <<  num_cycles_stage3 <<std::endl;
-    tr.Info << "num_cycles_stage4 = " <<  num_cycles_stage4 <<std::endl;
-    tr.Info << "num_cycles_stage5 = " <<  num_cycles_stage5 <<std::endl;
-    tr.Info << "temperature_= " << temperature_ << std::endl;
+                // relevant to stages 2 & 3
+                apply_large_frags_   = false;
+                short_insert_region_ = false;
+   
+                // number of cycles
+                num_cycles_stage1 = num_cycles_stage2 = 2000;
+                num_cycles_stage3 = 2000;
+                num_cycles_stage4 = 4000;
+                num_cycles_stage5 = 50000;
+            } else if (step < PAR_INI) { // first steps, but not the first one
+                temperature_ = 1.4; 
+                skip_stage1 = true;
+                apply_large_frags_   = false;
+            } else { // otherwise
+                temperature_ = 1.4; 
+                // switching stages on/off
+                skip_stage1 = true;
+                skip_stage2 = false;
+                skip_stage3 = false;
+                skip_stage4 = false;
+                skip_stage5 = true;
 
-    fold (*input_pose);            // fold the extended chain
+                // relevant to stages 2 & 3
+                apply_large_frags_   = false;
+                short_insert_region_ = false;
+   
+                // number of cycles
+                num_cycles_stage1 = num_cycles_stage2 = 200;
+                num_cycles_stage3 = 200;
+                num_cycles_stage4 = 400;
+                num_cycles_stage5 = 5000;
+            }
+        } else { // first step
+            // create a small pose based on the sequence_
+            generate_extended_pose (*input_pose, sequence_.substr (0, INITIAL_SIZE));
+        }
+        
+        // print the chosen parameters:
+        tr.Info << "num_cycles_stage1 = " <<  num_cycles_stage1 <<std::endl;
+        tr.Info << "num_cycles_stage2 = " <<  num_cycles_stage2 <<std::endl;
+        tr.Info << "num_cycles_stage3 = " <<  num_cycles_stage3 <<std::endl;
+        tr.Info << "num_cycles_stage4 = " <<  num_cycles_stage4 <<std::endl;
+        tr.Info << "num_cycles_stage5 = " <<  num_cycles_stage5 <<std::endl;
+        tr.Info << "temperature_= " << temperature_ << std::endl;
+
+        fold (*input_pose);            // fold the extended chain
+        oldPose = *input_pose;
+        step++;
+    } while (sequence_.size() - INITIAL_SIZE <= step);
+
     if (option[out::pdb].user()) {   // output final model
         output_models ();
     }
@@ -841,6 +901,27 @@ compbio_abinitio::generate_extended_pose (core::pose::Pose &pose,
           *(chemical::ChemicalManager::get_instance()->residue_type_set
                                                   (chemical::CENTROID)));
     for (Size pos = 1; pos <= pose.total_residue(); pos++) {
+        if (!pose.residue (pos).is_protein ()) continue;
+        pose.set_phi (pos, -150);
+        pose.set_psi (pos, 150);
+        pose.set_omega (pos, 180);
+    }
+}
+
+void
+ex_generate_extended_pose (core::pose::Pose &pose,
+              core::pose::Pose oldPose, std::string const& seq) const
+{
+    chemical::make_pose_from_sequence (pose, seq,
+          *(chemical::ChemicalManager::get_instance()->residue_type_set
+                                                  (chemical::CENTROID)));
+    for (Size pos = 1; pos <= oldPose.total_residue(); pos++) {
+        if (!pose.residue (pos).is_protein ()) continue;
+        pose.set_phi (pos, oldPose.get_phi());
+        pose.set_psi (pos, oldPose.get_psi());
+        pose.set_omega (pos, oldPose.get_omega());
+    }
+    for (Size pos = oldPose.total_residue()+1; pos <= pose.total_residue(); pos++) {
         if (!pose.residue (pos).is_protein ()) continue;
         pose.set_phi (pos, -150);
         pose.set_psi (pos, 150);
