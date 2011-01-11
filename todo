@@ -1,0 +1,6 @@
+* Start the prediction with a determined conformation.
+* Disable some steps (steps 1 and 5, specifically).
+* Automatize the process of predicting the substructures and using the predictions to predict the next substructure.
+* Add a new amino acid at the start of the prediction.
+* Change the temperature function so that it depends on which part of the molecule is being changed.
+
