@@ -95,31 +95,71 @@ using namespace protocols;
 using namespace options;
 using namespace OptionKeys;
 
+namespace compbio_app { RealOptionKey temperature( "compbio_app:temperature" );
+                        BooleanOptionKey skip_stage1( "compbio_app:skip_stage1" );
+                        BooleanOptionKey skip_stage2( "compbio_app:skip_stage2" );
+                        BooleanOptionKey skip_stage3( "compbio_app:skip_stage3" );
+                        BooleanOptionKey skip_stage4( "compbio_app:skip_stage4" );
+                        BooleanOptionKey skip_stage5( "compbio_app:skip_stage5" );
+                        BooleanOptionKey large_frags( "compbio_app:large_frags" );
+                        BooleanOptionKey first_run( "compbio_app:first_run" );
+                        IntegerOptionKey num_cycles_stage1( "compbio_app:num_cycles_stage1" );
+                        IntegerOptionKey num_cycles_stage2( "compbio_app:num_cycles_stage2" );
+                        IntegerOptionKey num_cycles_stage3( "compbio_app:num_cycles_stage3" );
+                        IntegerOptionKey num_cycles_stage4( "compbio_app:num_cycles_stage4" );
+                        IntegerOptionKey num_cycles_stage5( "compbio_app:num_cycles_stage5" );	}
+
 /* --------------------------register_options----------------------------
  *
  */
 void
 compbio_abinitio::register_options()
 {    
-	Parent::register_options();
-	using namespace core::options;
-	using namespace OptionKeys;
-	option.add_relevant (OptionKeys::abinitio::increase_cycles);
-	option.add_relevant (OptionKeys::abinitio::smooth_cycles_only);
-	option.add_relevant (OptionKeys::abinitio::debug);
-	option.add_relevant (OptionKeys::abinitio::skip_convergence_check);
-	option.add_relevant (OptionKeys::abinitio::log_frags);
-	option.add_relevant (OptionKeys::abinitio::only_stage1);
-	option.add_relevant (OptionKeys::abinitio::end_bias);
-	option.add_relevant (OptionKeys::abinitio::symmetry_residue);
-	option.add_relevant (OptionKeys::abinitio::vdw_weight_stage1);
-	option.add_relevant (OptionKeys::abinitio::override_vdw_all_stages);
-	option.add_relevant (OptionKeys::abinitio::recover_low_in_stages);
-	option.add_relevant (OptionKeys::abinitio::close_chbrk);
+    Parent::register_options();
+    using namespace core::options;
+    using namespace OptionKeys;
+    option.add_relevant (OptionKeys::abinitio::increase_cycles);
+    option.add_relevant (OptionKeys::abinitio::smooth_cycles_only);
+    option.add_relevant (OptionKeys::abinitio::debug);
+    option.add_relevant (OptionKeys::abinitio::skip_convergence_check);
+    option.add_relevant (OptionKeys::abinitio::log_frags);
+    option.add_relevant (OptionKeys::abinitio::only_stage1);
+    option.add_relevant (OptionKeys::abinitio::end_bias);
+    option.add_relevant (OptionKeys::abinitio::symmetry_residue);
+    option.add_relevant (OptionKeys::abinitio::vdw_weight_stage1);
+    option.add_relevant (OptionKeys::abinitio::override_vdw_all_stages);
+    option.add_relevant (OptionKeys::abinitio::recover_low_in_stages);
+    option.add_relevant (OptionKeys::abinitio::close_chbrk);
     option.add_relevant (OptionKeys::abinitio::bGDT);
     option.add_relevant (OptionKeys::abinitio::rmsd_residues);
     option.add_relevant (OptionKeys::out::file::silent );
     option.add_relevant (OptionKeys::out::nstruct);
+    option.add( compbio_app::temperature, "temperature of the monte carlo algorithm" );
+    option.add_relevant( compbio_app::temperature );
+    option.add( compbio_app::skip_stage1, "wheter stage 1 should not be done" );
+    option.add_relevant( compbio_app::skip_stage1 );
+    option.add( compbio_app::skip_stage2, "wheter stage 2 should not be done" );
+    option.add_relevant( compbio_app::skip_stage2 );
+    option.add( compbio_app::skip_stage3, "wheter stage 3 should not be done" );
+    option.add_relevant( compbio_app::skip_stage3 );
+    option.add( compbio_app::skip_stage4, "wheter stage 4 should not be done" );
+    option.add_relevant( compbio_app::skip_stage4 );
+    option.add( compbio_app::skip_stage5, "wheter stage 5 should not be done" );
+    option.add_relevant( compbio_app::skip_stage5 );
+    option.add( compbio_app::large_frags, "wheter large frags should be used" );
+    option.add_relevant( compbio_app::large_frags );
+    option.add( compbio_app::first_run, "wheter this is the first run" );
+    option.add_relevant( compbio_app::first_run );
+    option.add( compbio_app::num_cycles_stage1, "number of cycles of the 1st cycle" );
+    option.add_relevant( compbio_app::num_cycles_stage1 );
+    option.add( compbio_app::num_cycles_stage2, "number of cycles of the 2nd cycle" );
+    option.add_relevant( compbio_app::num_cycles_stage2 );
+    option.add( compbio_app::num_cycles_stage3, "number of cycles of the 3rd cycle" );
+    option.add_relevant( compbio_app::num_cycles_stage3 );
+    option.add( compbio_app::num_cycles_stage4, "number of cycles of the 4th cycle" );
+    option.add_relevant( compbio_app::num_cycles_stage4 );
+    option.add( compbio_app::num_cycles_stage5, "number of cycles of the 5th cycle" );
+    option.add_relevant( compbio_app::num_cycles_stage5 );
 }
 
 /* --------------------------compbio_abinitio----------------------------
@@ -186,6 +226,8 @@ compbio_abinitio::run ()
     }
 }
 
+#define _CBINIT_(a,b) if( option[compbio_app::a ].user() ) b = option[compbio_app::a ]
+
 /*---------------------------------setup-----------------------------------
  * Read 3- and 9-mer fragments, native structure, sequence (either from
  * fasta file or from natve structure, if given), and setting up score
@@ -241,7 +283,31 @@ compbio_abinitio::setup ()
 
    tr.Info << "Generate extended pose ...... " <<std::endl;
    input_pose = new pose::Pose;
-   generate_extended_pose (*input_pose, sequence_);
+   if (option[compbio_app::first_run ].user() ) {
+       if(!option[compbio_app::first_run ]) { // Add the new amino acid
+           if( !option[in::file::native ].user()) {
+               tr.Info << "Running without previous result! " <<std::endl;
+               generate_extended_pose (*native_pose, sequence_.substr(0, sequence_.size()-1));
+           }
+           core::pose::PoseOP new_end_pose = new core::pose::Pose();
+           std::string new_seq(2,'A');
+           new_seq[1] = sequence_[sequence_.size()-1];
+           core::chemical::make_pose_from_sequence(*new_end_pose, new_seq, 
+                       *( chemical::ChemicalManager::get_instance()->residue_type_set( 
+                                                                chemical::CENTROID ) ) );
+           chemical::remove_upper_terminus_type_from_pose_residue( 
+                                        *native_pose, ( *native_pose ).total_residue() );
+           for ( platform::Size seq_pos = 2; seq_pos <= ( *new_end_pose ).total_residue(); seq_pos++ ) {
+               core::conformation::Residue* dummy_res = new core::conformation::Residue( 
+                                                          new_end_pose->residue_type( seq_pos ) , true );
+               native_pose->append_residue_by_bond( *dummy_res , true, 0, seq_pos, 0, false );
+               delete dummy_res; 
+           }
+           *input_pose = *native_pose;
+           //delete new_end_pose;
+       }
+   } else
+       generate_extended_pose (*input_pose, sequence_);
    
    // Setting up score functions
    tr.Info << "Setting up score functions ...... " <<std::endl;
@@ -265,6 +331,19 @@ compbio_abinitio::setup ()
 
    silent_score_file_ = new io::silent::SilentFileData;
    silent_score_file_-> set_filename ( std::string( option[ out::sf ]()));
+
+   _CBINIT_(temperature,temperature_);
+   _CBINIT_(skip_stage1,skip_stage1);
+   _CBINIT_(skip_stage2,skip_stage2);
+   _CBINIT_(skip_stage3,skip_stage3);
+   _CBINIT_(skip_stage4,skip_stage4);
+   _CBINIT_(skip_stage5,skip_stage5);
+   _CBINIT_(large_frags,apply_large_frags_);
+   _CBINIT_(num_cycles_stage1,num_cycles_stage1);
+   _CBINIT_(num_cycles_stage2,num_cycles_stage2);
+   _CBINIT_(num_cycles_stage3,num_cycles_stage3);
+   _CBINIT_(num_cycles_stage4,num_cycles_stage4);
+   _CBINIT_(num_cycles_stage5,num_cycles_stage5);
 }
 
 
