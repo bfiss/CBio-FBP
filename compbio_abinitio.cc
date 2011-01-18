@@ -136,19 +136,19 @@ compbio_abinitio::register_options()
     option.add_relevant (OptionKeys::out::nstruct);
     option.add( compbio_app::temperature, "temperature of the monte carlo algorithm" );
     option.add_relevant( compbio_app::temperature );
-    option.add( compbio_app::skip_stage1, "wheter stage 1 should not be done" );
+    option.add( compbio_app::skip_stage1, "whether stage 1 should not be done" );
     option.add_relevant( compbio_app::skip_stage1 );
-    option.add( compbio_app::skip_stage2, "wheter stage 2 should not be done" );
+    option.add( compbio_app::skip_stage2, "whether stage 2 should not be done" );
     option.add_relevant( compbio_app::skip_stage2 );
-    option.add( compbio_app::skip_stage3, "wheter stage 3 should not be done" );
+    option.add( compbio_app::skip_stage3, "whether stage 3 should not be done" );
     option.add_relevant( compbio_app::skip_stage3 );
-    option.add( compbio_app::skip_stage4, "wheter stage 4 should not be done" );
+    option.add( compbio_app::skip_stage4, "whether stage 4 should not be done" );
     option.add_relevant( compbio_app::skip_stage4 );
-    option.add( compbio_app::skip_stage5, "wheter stage 5 should not be done" );
+    option.add( compbio_app::skip_stage5, "whether stage 5 should not be done" );
     option.add_relevant( compbio_app::skip_stage5 );
-    option.add( compbio_app::large_frags, "wheter large frags should be used" );
+    option.add( compbio_app::large_frags, "whether large frags should be used" );
     option.add_relevant( compbio_app::large_frags );
-    option.add( compbio_app::first_run, "wheter this is the first run" );
+    option.add( compbio_app::first_run, "whether this is the first run" );
     option.add_relevant( compbio_app::first_run );
     option.add( compbio_app::num_cycles_stage1, "number of cycles of the 1st cycle" );
     option.add_relevant( compbio_app::num_cycles_stage1 );
@@ -305,7 +305,8 @@ compbio_abinitio::setup ()
            }
            *input_pose = *native_pose;
            //delete new_end_pose;
-       }
+       } else
+           generate_extended_pose (*input_pose, sequence_);
    } else
        generate_extended_pose (*input_pose, sequence_);
    
