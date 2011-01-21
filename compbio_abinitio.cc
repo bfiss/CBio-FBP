@@ -107,7 +107,8 @@ namespace compbio_app { RealOptionKey temperature( "compbio_app:temperature" );
                         IntegerOptionKey num_cycles_stage2( "compbio_app:num_cycles_stage2" );
                         IntegerOptionKey num_cycles_stage3( "compbio_app:num_cycles_stage3" );
                         IntegerOptionKey num_cycles_stage4( "compbio_app:num_cycles_stage4" );
-                        IntegerOptionKey num_cycles_stage5( "compbio_app:num_cycles_stage5" );	}
+                        IntegerOptionKey num_cycles_stage5( "compbio_app:num_cycles_stage5" );
+                        StringOptionKey last_structure( "compbio_app:last_structure" );	}
 
 /* --------------------------register_options----------------------------
  *
@@ -160,6 +161,8 @@ compbio_abinitio::register_options()
     option.add_relevant( compbio_app::num_cycles_stage4 );
     option.add( compbio_app::num_cycles_stage5, "number of cycles of the 5th cycle" );
     option.add_relevant( compbio_app::num_cycles_stage5 );
+    option.add( compbio_app::last_structure, "last predicted structure" );
+    option.add_relevant( compbio_app::last_structure );
 }
 
 /* --------------------------compbio_abinitio----------------------------
@@ -264,6 +267,18 @@ compbio_abinitio::setup ()
        core::pose::set_ss_from_phipsi (*native_pose);
        chemical::switch_to_residue_type_set (*native_pose, chemical::CENTROID);
    }
+
+   // Read last pose, if given
+   previous_pose = new pose::Pose;
+   if (option[compbio_app::last_structure ].user() ) {
+       tr.Info << "Reading last structure ..." << std::endl;
+       io::pdb::pose_from_pdb (*previous_pose, option[compbio_app::last_structure]());
+       core::pose::set_ss_from_phipsi (*previous_pose);
+       chemical::switch_to_residue_type_set (*previous_pose, chemical::CENTROID);
+       std::string sequence2 = previous_pose->sequence();
+       tr.Info << "Read previous sequence: Size = " << sequence2.size()
+               << " Residues = \n"  << sequence2 << std::endl;
+   }
         
    // Read target sequence from fasta file or native structure
    if (option [in::file::fasta].user() ) {
@@ -285,9 +300,9 @@ compbio_abinitio::setup ()
    input_pose = new pose::Pose;
    if (option[compbio_app::first_run ].user() ) {
        if(!option[compbio_app::first_run ]) { // Add the new amino acid
-           if( !option[in::file::native ].user()) {
+           if( !option[compbio_app::last_structure ].user()) {
                tr.Info << "Running without previous result! " <<std::endl;
-               generate_extended_pose (*native_pose, sequence_.substr(0, sequence_.size()-1));
+               generate_extended_pose (*previous_pose, sequence_.substr(0, sequence_.size()-1));
            }
            core::pose::PoseOP new_end_pose = new core::pose::Pose();
            std::string new_seq(2,'A');
@@ -296,14 +311,14 @@ compbio_abinitio::setup ()
                        *( chemical::ChemicalManager::get_instance()->residue_type_set( 
                                                                 chemical::CENTROID ) ) );
            chemical::remove_upper_terminus_type_from_pose_residue( 
-                                        *native_pose, ( *native_pose ).total_residue() );
+                                        *previous_pose, ( *previous_pose ).total_residue() );
            for ( platform::Size seq_pos = 2; seq_pos <= ( *new_end_pose ).total_residue(); seq_pos++ ) {
                core::conformation::Residue* dummy_res = new core::conformation::Residue( 
                                                           new_end_pose->residue_type( seq_pos ) , true );
-               native_pose->append_residue_by_bond( *dummy_res , true, 0, seq_pos, 0, false );
+               previous_pose->append_residue_by_bond( *dummy_res , true, 0, seq_pos, 0, false );
                delete dummy_res; 
            }
-           *input_pose = *native_pose;
+           *input_pose = *previous_pose;
            //delete new_end_pose;
        } else
            generate_extended_pose (*input_pose, sequence_);

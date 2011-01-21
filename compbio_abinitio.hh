@@ -108,7 +108,8 @@ public:
     core::scoring::ScoreFunctionOP fullatom_scorefunction_;
     core::kinematics::MoveMapOP movemap;
     core::pose::PoseOP input_pose;            
-    core::pose::PoseOP native_pose;
+    core::pose::PoseOP native_pose;          
+    core::pose::PoseOP previous_pose;
     std::string tag;
     // a bunch of PoseEvaluators for process_decoy() --- if available
 	protocols::evaluation::MetaPoseEvaluatorOP evaluator_;
